@@ -9,6 +9,7 @@ import org.jsoup.select.Elements;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -20,6 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class WebScrapper implements CommandLineRunner {
@@ -54,28 +57,34 @@ public class WebScrapper implements CommandLineRunner {
 
         }
 
-        downloadPDFs(pdfURLSet);
+        downloadPDFs(pdfURLSet, "/home/luangomes/IdeaProjects/webscrapping/src/ans.zip");
 
     }
 
 
-    public void downloadPDFs(Set<String> pdfURLs) throws IOException {
+    public void downloadPDFs(Set<String> pdfURLs, String zipFileName) throws IOException {
 
-        InputStream in = null;
+        try (FileOutputStream fos = new FileOutputStream(zipFileName); ZipOutputStream zos = new ZipOutputStream(fos)) {
+            for (String pdf : pdfURLs) {
 
+                String fileName = RandomStringUtils.generateRandomFilePrefix("ans", "pdf");
+                try (InputStream input = new URL (pdf).openStream()){
+                    zos.putNextEntry(new ZipEntry(fileName));
+                    byte[] buffer = new byte[4096];
+                    int len;
+                    while ((len = input.read(buffer)) > 0) {
 
-        for (String pdf : pdfURLs) {
-            try {
-                in = new URL(pdf).openStream();
-                Files.copy(in, Paths.get(RandomStringUtils.generateRandomFilePrefix("ans", "pdf")), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } finally {
-                in.close();
+                        zos.write(buffer, 0, len);
+                    }
+
+                    zos.closeEntry();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
-    }
 
+    }
 
 }
 
